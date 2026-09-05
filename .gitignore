@@ -1,0 +1,8 @@
+.build/
+dist/
+.DS_Store
+*.xcuserstate
+.site-work/
+Speel and Grammar Check/
+Resources/Voxora.icns
+Resources/Voxora.iconset/
