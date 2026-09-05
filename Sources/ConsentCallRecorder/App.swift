@@ -10,6 +10,9 @@ struct VoxoraApp: App {
         WindowGroup("Voxora", id: "main") {
             RecorderWindow(model: model)
                 .onAppear { appDelegate.model = model }
+                .background(WindowAccessor { window in
+                    appDelegate.register(window: window)
+                })
         }
         .defaultSize(width: 620, height: 202)
         .windowResizability(.contentSize)
@@ -30,8 +33,9 @@ struct VoxoraApp: App {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     weak var model: RecorderModel?
+    private weak var mainWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.regular)
@@ -48,6 +52,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         model.quit()
         return .terminateCancel
+    }
+
+    func register(window: NSWindow) {
+        guard mainWindow !== window else { return }
+        mainWindow = window
+        window.delegate = self
+    }
+
+    func windowShouldClose(_ sender: NSWindow) -> Bool {
+        guard let model, model.shouldBlockTermination else { return true }
+        model.quit()
+        return false
+    }
+}
+
+private struct WindowAccessor: NSViewRepresentable {
+    let onWindow: (NSWindow) -> Void
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        DispatchQueue.main.async {
+            if let window = view.window { onWindow(window) }
+        }
+        return view
+    }
+
+    func updateNSView(_ view: NSView, context: Context) {
+        DispatchQueue.main.async {
+            if let window = view.window { onWindow(window) }
+        }
     }
 }
 

@@ -301,8 +301,21 @@ final class RecorderModel: ObservableObject {
             return
         }
         if hasActiveRecording {
-            pendingQuit = true
-            finishAndSave()
+            let alert = NSAlert()
+            alert.messageText = "Save recording before quitting?"
+            alert.informativeText = "The current recording has not been saved."
+            alert.addButton(withTitle: "Save")
+            alert.addButton(withTitle: "Discard")
+            alert.addButton(withTitle: "Cancel")
+            switch alert.runModal() {
+            case .alertFirstButtonReturn:
+                pendingQuit = true
+                finishAndSave()
+            case .alertSecondButtonReturn:
+                discardActiveRecordingAndQuit()
+            default:
+                break
+            }
             return
         }
         if isBusy {
@@ -310,6 +323,20 @@ final class RecorderModel: ObservableObject {
             return
         }
         NSApplication.shared.terminate(nil)
+    }
+
+    private func discardActiveRecordingAndQuit() {
+        guard hasActiveRecording else { return }
+        stopTimer()
+        state = .processing
+        let rawURL = rawRecordingURL
+
+        Task {
+            try? await recorder.stop()
+            if let rawURL { try? FileManager.default.removeItem(at: rawURL) }
+            resetAfterRecording()
+            NSApplication.shared.terminate(nil)
+        }
     }
 
     private func startTimer() {
