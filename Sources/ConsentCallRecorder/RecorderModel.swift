@@ -35,6 +35,7 @@ final class RecorderModel: ObservableObject {
     var hasActiveRecording: Bool { isRecording || isPaused }
     var hasPendingRecording: Bool { state == .readyToSave }
     var isBusy: Bool { state == .preparing || state == .processing }
+    var shouldBlockTermination: Bool { state != .idle }
 
     var menuTitle: String {
         hasActiveRecording ? "REC \(formattedElapsed)" : "Recorder"
@@ -103,10 +104,18 @@ final class RecorderModel: ObservableObject {
                 audioLevel = 0
                 startTimer()
                 state = .recording
+                if pendingQuit {
+                    finishAndSave()
+                }
             } catch {
                 state = .idle
                 errorMessage = friendlyMessage(for: error)
+                try? FileManager.default.removeItem(at: rawRecordingURL)
                 self.rawRecordingURL = nil
+                if pendingQuit {
+                    pendingQuit = false
+                    NSApplication.shared.terminate(nil)
+                }
             }
         }
     }
@@ -195,8 +204,18 @@ final class RecorderModel: ObservableObject {
                     NSApplication.shared.terminate(nil)
                 }
             } catch {
-                errorMessage = recoveryMessage(for: error, rawURL: rawURL, finalURL: finalURL)
-                resetAfterRecording()
+                if shouldClean {
+                    errorMessage = recoveryMessage(for: error, rawURL: rawURL, finalURL: finalURL)
+                    resetAfterRecording()
+                } else if FileManager.default.fileExists(atPath: rawURL.path) {
+                    finalRecordingURL = nil
+                    state = .readyToSave
+                    errorMessage = "The recording could not be saved: \(error.localizedDescription). It is still available in Voxora."
+                } else {
+                    errorMessage = "The recording could not be saved: \(error.localizedDescription)"
+                    resetAfterRecording()
+                }
+                pendingQuit = false
             }
         }
     }
@@ -286,7 +305,10 @@ final class RecorderModel: ObservableObject {
             finishAndSave()
             return
         }
-        guard !isBusy else { return }
+        if isBusy {
+            pendingQuit = true
+            return
+        }
         NSApplication.shared.terminate(nil)
     }
 
@@ -307,10 +329,31 @@ final class RecorderModel: ObservableObject {
     private func handleUnexpectedStop(_ error: Error) {
         guard state == .recording || state == .paused || state == .preparing else { return }
         stopTimer()
-        errorMessage = friendlyMessage(for: error)
-        hasConsent = false
-        audioLevel = 0
-        state = .idle
+        let rawURL = rawRecordingURL
+        state = .processing
+
+        Task {
+            do {
+                try await recorder.stop()
+                guard let rawURL, FileManager.default.fileExists(atPath: rawURL.path) else {
+                    throw error
+                }
+                state = .readyToSave
+                audioLevel = 0
+                errorMessage = "Recording stopped unexpectedly: \(error.localizedDescription). The captured audio is still available to save."
+                if pendingQuit {
+                    savePendingRecording(quitAfterSave: true)
+                }
+            } catch {
+                if let rawURL { try? FileManager.default.removeItem(at: rawURL) }
+                resetAfterRecording()
+                errorMessage = "Recording stopped unexpectedly and could not be recovered: \(error.localizedDescription)"
+                if pendingQuit {
+                    pendingQuit = false
+                    NSApplication.shared.terminate(nil)
+                }
+            }
+        }
     }
 
     private func friendlyMessage(for error: Error) -> String {

@@ -43,7 +43,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard let model, model.hasPendingRecording || model.hasActiveRecording else {
+        guard let model, model.shouldBlockTermination else {
             return .terminateNow
         }
         model.quit()

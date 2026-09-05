@@ -4,7 +4,7 @@ Record Meetings and Browser Audio.
 
 Website: [https://hgus107.github.io/YoFile/suite.html?app=voxora](https://hgus107.github.io/YoFile/suite.html?app=voxora)
 
-Current release: **v1.2**
+Current release: **v1.3**
 
 Voxora is a small, free macOS recorder for audio playing on your Mac. It captures meeting audio from Zoom, Microsoft Teams, FaceTime, and browser calls, as well as browser audio such as YouTube. Everything stays on the machine.
 
@@ -71,7 +71,7 @@ The optional filter is conservative signal processing rather than AI source sepa
 - `swift test` verifies the speech-oriented cleanup pass against generated audio.
 - `scripts/package-macos.sh` builds `Voxora.app`, compiles the icon catalog, applies hardened-runtime Developer ID signing, and creates a versioned DMG.
 - Each package run preserves older installers and creates the next filename: `Voxora-1.1.dmg`, `Voxora-1.2.dmg`, `Voxora-1.3.dmg`, and so on.
-- The current build is Developer ID signed but not Apple-notarized.
+- Public builds are Developer ID signed, submitted to Apple for notarization, and stapled before release.
 - macOS 14 or later and Apple Silicon are the currently tested target.
 
 ## Build from source

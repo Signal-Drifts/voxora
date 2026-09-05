@@ -10,6 +10,7 @@ dmg_stage_dir="$dist_dir/dmg-stage"
 swift_cache_dir="$project_dir/.build/tool-cache"
 asset_catalog="$project_dir/Resources/Assets.xcassets"
 signing_identity="${SIGNING_IDENTITY:-}"
+notary_profile="${VOXORA_NOTARY_PROFILE:-kiln}"
 
 next_release=1
 for existing_dmg in "$dist_dir"/Voxora-1.*.dmg; do
@@ -38,6 +39,10 @@ if [[ -z "$signing_identity" ]]; then
 fi
 if [[ -z "$signing_identity" ]]; then
     signing_identity="-"
+fi
+if [[ "$signing_identity" != "-" && -z "$notary_profile" ]]; then
+    echo "VOXORA_NOTARY_PROFILE is required for a signed public release" >&2
+    exit 1
 fi
 
 cd "$project_dir"
@@ -90,6 +95,9 @@ rm -rf "$dmg_stage_dir"
 
 if [[ "$signing_identity" != "-" ]]; then
     codesign --force --timestamp --sign "$signing_identity" "$dmg_path"
+    xcrun notarytool submit "$dmg_path" --keychain-profile "$notary_profile" --wait
+    xcrun stapler staple "$dmg_path"
+    xcrun stapler validate "$dmg_path"
 fi
 
 echo "Signed with: $signing_identity"
