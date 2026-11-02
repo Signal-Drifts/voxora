@@ -2,7 +2,7 @@
 
 Record Meetings and Browser Audio.
 
-Website: [https://hgus107.github.io/YoFile/suite.html?app=voxora](https://hgus107.github.io/YoFile/suite.html?app=voxora)
+Website: [https://signal-drifts.github.io/YoFile/suite.html?app=voxora](https://signal-drifts.github.io/YoFile/suite.html?app=voxora)
 
 Current release: **v1.4**
 
@@ -40,7 +40,7 @@ The app deliberately requires the user to confirm that they have permission befo
 
 ## How to use
 
-Download the signed Apple Silicon installer from the [latest release](https://github.com/hgus107/voxora/releases/latest).
+Download the signed Apple Silicon installer from the [latest release](https://github.com/Signal-Drifts/voxora/releases/latest).
 
 1. Open the DMG and drag Voxora into Applications.
 2. Open Voxora and grant Screen & System Audio Recording permission when macOS asks.
